@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Workspace</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+    <style>
+        :root {
+            --bg: #030b1f;
+            --panel: rgba(8, 17, 44, 0.9);
+            --line: rgba(88, 167, 255, 0.24);
+            --text: #e9f4ff;
+            --muted: #9eb8d9;
+            --accent: #23a5ff;
+            --accent-2: #8a63ff;
+            --shadow: 0 26px 70px rgba(0, 0, 0, 0.5);
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Orbitron", "Trebuchet MS", "Segoe UI", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(35, 165, 255, 0.22), transparent 18%),
+                radial-gradient(circle at 82% 18%, rgba(138, 99, 255, 0.16), transparent 18%),
+                linear-gradient(145deg, #020611 0%, #051230 52%, #030b1f 100%);
+            background-size: 120% 120%, 120% 120%, 120% 120%;
+            animation: gradientShift 16s ease-in-out infinite;
+            position: relative;
+            overflow-x: hidden;
+        }
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background:
+                radial-gradient(circle at 24% 24%, rgba(95, 190, 255, 0.1), transparent 22%),
+                radial-gradient(circle at 74% 72%, rgba(138, 99, 255, 0.09), transparent 24%);
+            mix-blend-mode: screen;
+            animation: bgFlash 3.4s ease-in-out infinite;
+            z-index: 0;
+        }
+        body::after {
+            content: "";
+            position: fixed;
+            inset: -18%;
+            pointer-events: none;
+            background:
+                conic-gradient(from 0deg at 50% 50%, rgba(35, 165, 255, 0.08), rgba(138, 99, 255, 0.09), rgba(35, 165, 255, 0.08));
+            filter: blur(52px);
+            animation: auroraRotate 22s linear infinite;
+            z-index: 0;
+        }
+        .shell { max-width: 1320px; margin: 0 auto; padding: 18px 24px 24px; position: relative; z-index: 1; }
+        .topbar {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 18px; animation: fadeUp 0.5s ease-out;
+        }
+        .left-group { display: flex; align-items: center; gap: 12px; }
+        .menu-toggle {
+            display: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            background: rgba(42, 119, 255, 0.12);
+            color: var(--text);
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+        .menu-toggle .bar {
+            width: 18px;
+            height: 2px;
+            background: currentColor;
+            border-radius: 999px;
+            position: relative;
+            display: block;
+        }
+        .menu-toggle .bar::before,
+        .menu-toggle .bar::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            width: 18px;
+            height: 2px;
+            border-radius: 999px;
+            background: currentColor;
+        }
+        .menu-toggle .bar::before { top: -6px; }
+        .menu-toggle .bar::after { top: 6px; }
+        .profile {
+            display: flex; align-items: center; gap: 10px; padding: 6px 12px 6px 6px;
+            border-radius: 999px; border: 1px solid var(--line); background: rgba(42, 119, 255, 0.12);
+        }
+        .avatar {
+            width: 34px; height: 34px; border-radius: 50%;
+            display: grid; place-content: center; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #24040a;
+        }
+        .logout-form { margin: 0; }
+        .logout-btn {
+            border: 1px solid rgba(138, 99, 255, 0.38);
+            background: rgba(138, 99, 255, 0.2);
+            color: #e6ddff; border-radius: 12px; padding: 10px 14px; cursor: pointer; font-weight: 700;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .logout-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 18px rgba(138, 99, 255, 0.34);
+        }
+        .app-layout { display: grid; grid-template-columns: 220px 1fr; gap: 18px; }
+        .sidebar {
+            border-radius: 18px; border: 1px solid var(--line); background: var(--panel);
+        }
+        .menu { display: grid; gap: 8px; padding: 14px; }
+        .menu a {
+            text-decoration: none; color: var(--text); padding: 10px 12px; border-radius: 10px;
+            border: 1px solid transparent; background: rgba(255,255,255,0.02);
+        }
+        .menu a.active { border-color: var(--line); background: rgba(42, 119, 255, 0.2); }
+        .content { display: grid; gap: 18px; animation: fadeUp 0.6s ease-out; }
+        .hero, .card {
+            padding: 20px; border-radius: 22px; border: 1px solid var(--line); background: var(--panel); box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before, .card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background:
+                repeating-linear-gradient(
+                    to bottom,
+                    transparent 0,
+                    transparent 2px,
+                    rgba(66, 186, 255, 0.03) 3px,
+                    transparent 4px
+                );
+            animation: scanline 9s linear infinite;
+        }
+        .hero h1 { margin: 0 0 8px; }
+        .muted { color: var(--muted); }
+        h2, h3 { margin-top: 0; }
+        .meter { height: 10px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; margin-top: 14px; }
+        .meter span { display:block; height:100%; width:52%; background: linear-gradient(90deg, rgba(138, 99, 255, 0.62), rgba(35, 165, 255, 0.85)); animation: pulseBar 2.2s ease-in-out infinite; }
+        .files { display: grid; gap: 12px; }
+        .file-item {
+            display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;
+            padding: 14px; border-radius: 14px; border: 1px solid rgba(88, 167, 255, 0.25); background: rgba(255,255,255,0.03);
+        }
+        .file-actions { display: flex; gap: 10px; }
+        .button-link, button {
+            border: none; border-radius: 12px; padding: 10px 14px; text-decoration: none; font-weight: 700; cursor: pointer;
+        }
+        .button-link, button.primary { color: #021325; background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+        .ghost { border: 1px solid rgba(138, 99, 255, 0.3); background: rgba(138, 99, 255, 0.15); color: #e8deff; }
+        button:disabled, input:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .button-link.disabled {
+            opacity: 0.6;
+            pointer-events: none;
+            cursor: not-allowed;
+        }
+        form { display: grid; gap: 10px; }
+        input { border-radius: 12px; border: 1px solid rgba(88, 167, 255, 0.32); background: rgba(5,10,30,.92); color: var(--text); padding: 12px; }
+        .message { padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); margin-top: 12px; }
+        .message.info { background: rgba(35, 165, 255, 0.14); }
+        .message.success { background: rgba(138, 99, 255, 0.16); }
+        .message.error { background: rgba(80, 120, 255, 0.16); }
+        .timeline { margin: 0; padding-left: 18px; display: grid; gap: 8px; }
+        .inline-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: end; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+        .stat-box {
+            padding: 14px; border-radius: 16px; border: 1px solid rgba(88, 167, 255, 0.25); background: rgba(255,255,255,0.03);
+        }
+        .stat-box strong { display: block; font-size: 1.5rem; margin-top: 6px; }
+        .reason-list { margin: 0; padding-left: 18px; display: grid; gap: 8px; }
+        .access-banner {
+            display: inline-flex; align-items: center; gap: 10px;
+            padding: 10px 14px; border-radius: 999px; border: 1px solid var(--line);
+            background: rgba(255,255,255,.05);
+        }
+        .split-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 18px; }
+        .preview-box {
+            max-height: 320px; overflow: auto; padding: 14px; border-radius: 16px;
+            border: 1px solid rgba(88, 167, 255, 0.25); background: rgba(5,10,30,.92); white-space: pre-wrap;
+        }
+        .preview-frame {
+            width: 100%;
+            height: min(68vh, 640px);
+            border: 1px solid rgba(88, 167, 255, 0.25);
+            border-radius: 16px;
+            background: rgba(5,10,30,.92);
+        }
+        .preview-image {
+            display: block;
+            max-width: 100%;
+            max-height: min(68vh, 640px);
+            border-radius: 16px;
+            border: 1px solid rgba(88, 167, 255, 0.25);
+            background: rgba(5,10,30,.92);
+            object-fit: contain;
+        }
+        .quick-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+        .rule-box {
+            padding: 14px; border-radius: 16px; border: 1px solid rgba(88, 167, 255, 0.25); background: rgba(255,255,255,0.03);
+        }
+        .pill { display: inline-block; padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255,255,255,.04); }
+        .hero h1 { animation: blinkSoft 1.8s step-end infinite; }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(12px);} to { opacity:1; transform:translateY(0);} }
+        @keyframes blinkSoft {
+            0%, 100% { opacity: 1; text-shadow: 0 0 0 rgba(144, 226, 255, 0); }
+            50% { opacity: 0.84; text-shadow: 0 0 16px rgba(144, 226, 255, 0.35); }
+        }
+        @keyframes pulseBar {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.2); }
+        }
+        @keyframes scanline {
+            from { transform: translateY(-10px); }
+            to { transform: translateY(12px); }
+        }
+        @keyframes bgFlash {
+            0%, 100% { opacity: 0.68; }
+            50% { opacity: 1; }
+        }
+        @keyframes gradientShift {
+            0% { background-position: 0% 40%, 100% 60%, 50% 50%; }
+            50% { background-position: 100% 50%, 0% 40%, 60% 40%; }
+            100% { background-position: 0% 40%, 100% 60%, 50% 50%; }
+        }
+        @keyframes auroraRotate {
+            from { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.06); }
+            to { transform: rotate(360deg) scale(1); }
+        }
+        @media (max-width: 900px) {
+            .menu-toggle { display: inline-flex; }
+            .app-layout { grid-template-columns: 1fr; }
+            .sidebar {
+                position: fixed;
+                top: 72px;
+                left: 12px;
+                right: 12px;
+                z-index: 50;
+                transform: translateY(-10px);
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+            }
+            .sidebar.open {
+                transform: translateY(0);
+                opacity: 1;
+                visibility: visible;
+            }
+            .file-item { grid-template-columns: 1fr; }
+            .split-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <div class="topbar">
+            <div class="left-group">
+                <button class="menu-toggle" type="button" aria-label="Toggle navigation menu" onclick="toggleMenu()">
+                    <span class="bar"></span>
+                </button>
+                <div class="profile">
+                    <div class="avatar">{{ user[0]|upper }}</div>
+                    <strong>{{ user }}</strong>
+                </div>
+            </div>
+            <form class="logout-form" action="{{ url_for('logout') }}" method="post">
+                <button class="logout-btn" type="submit">Logout</button>
+            </form>
+        </div>
+
+        <div class="app-layout">
+            <aside class="sidebar" id="sidebarMenu">
+                <nav class="menu">
+                    <a class="{% if current_page == 'overview' %}active{% endif %}" href="{{ url_for('dashboard', page='overview') }}">Overview</a>
+                    <a class="{% if current_page == 'files' %}active{% endif %}" href="{{ url_for('dashboard', page='files') }}">Files</a>
+                    <a class="{% if current_page == 'upload' %}active{% endif %}" href="{{ url_for('dashboard', page='upload') }}">Upload</a>
+                </nav>
+            </aside>
+
+            <main class="content">
+                <section class="hero">
+                    <h1>Secure File Workspace</h1>
+                    <p class="muted">Professional, focused, and protected.</p>
+                    <div class="meter"><span></span></div>
+                    {% if user_locked %}
+                        <div class="message error">
+                            Actions suspended: Trust score {{ trust_score }} is below threshold {{ trust_lock_threshold }}.
+                        </div>
+                    {% endif %}
+                    {% if message %}
+                        <div class="message {{ message_type }}">{{ message }}</div>
+                    {% endif %}
+                </section>
+
+                {% if current_page == 'overview' %}
+                    <section class="card">
+                        <h2>Workspace Overview</h2>
+                        <p class="muted">Use the menu to manage files and uploads. Monitoring details stay visible only to the admin.</p>
+                        <p><span class="pill">Allowed login window: {{ login_window }}</span></p>
+                        <div class="quick-links">
+                            {% if user_locked %}
+                                <span class="pill">Workspace actions are temporarily suspended by trust policy.</span>
+                            {% else %}
+                                <a class="button-link" href="{{ url_for('dashboard', page='upload') }}">Go To Upload</a>
+                                <a class="button-link" href="{{ url_for('dashboard', page='files') }}">Open Files</a>
+                            {% endif %}
+                        </div>
+                        {% if manual_access_open %}
+                            <p class="muted">Admin opened manual access until {{ manual_access_until }}.</p>
+                        {% endif %}
+                    </section>
+                    <section class="card">
+                        <h2>Login Hours</h2>
+                        <p class="muted">Login hours are managed by admin. You can view your current allowed window below.</p>
+                        <p><span class="pill">Allowed login window: {{ login_window }}</span></p>
+                        {% if manual_access_open %}
+                            <p class="muted">Manual access currently open: {{ manual_access_until }}</p>
+                        {% endif %}
+                    </section>
+                {% endif %}
+
+                {% if current_page == 'files' %}
+                    <div class="split-grid">
+                        <section class="card">
+                            <h2>Shared Files</h2>
+                            <div class="files">
+                                {% if files %}
+                                    {% for file in files %}
+                                        <div class="file-item">
+                                            <div>
+                                                <strong>{{ file.name }}</strong>
+                                                <div class="muted">{{ file.size }} bytes</div>
+                                            </div>
+                                            <div class="file-actions">
+                                                <a class="button-link {% if user_locked %}disabled{% endif %}" href="{{ url_for('view_file', filename=file.name) }}">Preview</a>
+                                                <form action="{{ url_for('delete_file', filename=file.name) }}" method="post">
+                                                    <button class="ghost" type="submit" {% if user_locked %}disabled{% endif %}>Delete</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <p class="muted">No shared files are available.</p>
+                                {% endif %}
+                            </div>
+                        </section>
+                        <section class="card">
+                            <h2>Preview</h2>
+                            {% if preview_file %}
+                                <p><strong>{{ preview_file.name }}</strong></p>
+                                <p class="muted">Last updated: {{ preview_file.updated }}</p>
+                                {% if preview_file.preview_type == 'pdf' %}
+                                    <iframe
+                                        class="preview-frame"
+                                        title="Preview {{ preview_file.name }}"
+                                        src="{{ url_for('raw_file', filename=preview_file.name) }}"
+                                    ></iframe>
+                                {% elif preview_file.preview_type == 'image' %}
+                                    <img
+                                        class="preview-image"
+                                        src="{{ url_for('raw_file', filename=preview_file.name) }}"
+                                        alt="Preview {{ preview_file.name }}"
+                                    >
+                                {% elif preview_file.preview_type == 'text' %}
+                                    <div class="preview-box">{{ preview_file.content }}</div>
+                                {% else %}
+                                    <div class="preview-box">{{ preview_file.content }}</div>
+                                    {% if preview_file.can_open_inline %}
+                                        <p><a class="button-link" href="{{ url_for('raw_file', filename=preview_file.name) }}" target="_blank" rel="noopener">Open File</a></p>
+                                    {% endif %}
+                                {% endif %}
+                            {% else %}
+                                <p class="muted">Choose a file to preview.</p>
+                            {% endif %}
+                        </section>
+                    </div>
+                {% endif %}
+
+                {% if current_page == 'upload' %}
+                    <section class="card">
+                        <h2>Upload File</h2>
+                        <div class="rule-box">
+                            <div class="muted">Maximum file size: {{ max_upload_size_mb }} MB</div>
+                            <div class="muted">Blocked extensions: {{ blocked_extensions }}</div>
+                        </div>
+                        <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
+                            <input type="file" name="shared_file" required {% if user_locked %}disabled{% endif %}>
+                            <button class="primary" type="submit" {% if user_locked %}disabled{% endif %}>Upload</button>
+                        </form>
+                    </section>
+                    <section class="card">
+                        <h2>Create File</h2>
+                        <form action="{{ url_for('create_file') }}" method="post">
+                            <input type="text" name="filename" placeholder="example.txt" required {% if user_locked %}disabled{% endif %}>
+                            <input type="text" name="content" placeholder="File content" required {% if user_locked %}disabled{% endif %}>
+                            <button class="primary" type="submit" {% if user_locked %}disabled{% endif %}>Create</button>
+                        </form>
+                    </section>
+                    <section class="card">
+                        <h2>Update File</h2>
+                        <form action="{{ url_for('update_file') }}" method="post">
+                            <input type="text" name="filename" placeholder="existing-file.txt" required {% if user_locked %}disabled{% endif %}>
+                            <input type="text" name="content" placeholder="Updated content" required {% if user_locked %}disabled{% endif %}>
+                            <button class="primary" type="submit" {% if user_locked %}disabled{% endif %}>Update</button>
+                        </form>
+                    </section>
+                {% endif %}
+
+            </main>
+        </div>
+    </div>
+    <div class="cyber-hud-root" data-react-theme-widget></div>
+    <script src="{{ url_for('static', filename='js/theme-react.js') }}" defer></script>
+    <script>
+        function toggleMenu() {
+            const sidebar = document.getElementById("sidebarMenu");
+            if (!sidebar) {
+                return;
+            }
+            sidebar.classList.toggle("open");
+        }
+
+        document.addEventListener("click", function(event) {
+            const sidebar = document.getElementById("sidebarMenu");
+            const toggle = document.querySelector(".menu-toggle");
+            if (!sidebar || !toggle || window.innerWidth > 900) {
+                return;
+            }
+
+            if (!sidebar.contains(event.target) && !toggle.contains(event.target)) {
+                sidebar.classList.remove("open");
+            }
+        });
+
+        document.addEventListener("keydown", function(event) {
+            if (event.key !== "Escape") {
+                return;
+            }
+            const sidebar = document.getElementById("sidebarMenu");
+            if (sidebar) {
+                sidebar.classList.remove("open");
+            }
+        });
+    </script>
+</body>
+</html>

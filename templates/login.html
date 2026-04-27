@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INS Secure Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+    <style>
+        :root {
+            --bg: #050c1f;
+            --bg-deep: #020713;
+            --panel: rgba(8, 18, 44, 0.82);
+            --panel-soft: rgba(255, 255, 255, 0.04);
+            --line: rgba(77, 173, 255, 0.28);
+            --text: #e8f4ff;
+            --muted: #9ab5d9;
+            --accent: #19a1ff;
+            --accent-2: #865dff;
+            --danger: #9db6ff;
+            --shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            font-family: "Orbitron", "Trebuchet MS", "Segoe UI", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at 15% 20%, rgba(25, 161, 255, 0.22), transparent 24%),
+                radial-gradient(circle at 80% 75%, rgba(134, 93, 255, 0.14), transparent 22%),
+                linear-gradient(145deg, var(--bg-deep), var(--bg) 58%, #090f2f);
+            background-size: 120% 120%, 120% 120%, 120% 120%;
+            animation: gradientShift 14s ease-in-out infinite;
+            position: relative;
+            overflow: hidden;
+        }
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background:
+                radial-gradient(circle at 20% 25%, rgba(80, 180, 255, 0.11), transparent 22%),
+                radial-gradient(circle at 75% 70%, rgba(138, 99, 255, 0.1), transparent 25%);
+            mix-blend-mode: screen;
+            animation: bgFlash 3.6s ease-in-out infinite;
+            z-index: 0;
+        }
+        body::after {
+            content: "";
+            position: fixed;
+            inset: -20%;
+            pointer-events: none;
+            background:
+                conic-gradient(from 0deg at 50% 50%, rgba(34, 158, 255, 0.08), rgba(138, 99, 255, 0.08), rgba(34, 158, 255, 0.08));
+            filter: blur(50px);
+            animation: auroraRotate 20s linear infinite;
+            z-index: 0;
+        }
+
+        .login-shell {
+            width: min(1040px, 100%);
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr;
+            overflow: hidden;
+            border-radius: 30px;
+            border: 1px solid var(--line);
+            background: rgba(10, 2, 5, 0.8);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(18px);
+            animation: fadeUp 0.6s ease-out;
+            position: relative;
+            z-index: 1;
+        }
+
+        .login-shell::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background:
+                repeating-linear-gradient(
+                    to bottom,
+                    transparent 0px,
+                    transparent 2px,
+                    rgba(56, 179, 255, 0.03) 3px,
+                    transparent 4px
+                );
+            animation: scanLine 8s linear infinite;
+        }
+
+        .intro,
+        .panel {
+            padding: 38px;
+        }
+
+        .intro {
+            position: relative;
+            background:
+                linear-gradient(155deg, rgba(37, 138, 255, 0.14), rgba(134, 93, 255, 0.1)),
+                rgba(255, 255, 255, 0.02);
+        }
+
+        .eyebrow {
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            color: #6ecbff;
+            font-size: 0.75rem;
+            animation: blinkSoft 2.4s ease-in-out infinite;
+        }
+
+        h1,
+        h2 {
+            margin-top: 0;
+        }
+
+        h1 {
+            margin: 14px 0 16px;
+            font-size: clamp(2.2rem, 4vw, 3.7rem);
+            line-height: 1.02;
+            animation: cyberTitleBlink 1.9s steps(2, end) infinite;
+        }
+
+        .muted {
+            color: var(--muted);
+        }
+
+        .feature-grid {
+            display: grid;
+            gap: 14px;
+            margin-top: 28px;
+        }
+
+        .feature {
+            padding: 16px 18px;
+            border-radius: 18px;
+            background: var(--panel-soft);
+            border: 1px solid var(--line);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .feature:hover {
+            transform: translateY(-3px);
+            border-color: rgba(134, 93, 255, 0.45);
+        }
+
+        .feature strong {
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        form {
+            display: grid;
+            gap: 14px;
+            margin-top: 20px;
+        }
+
+        label {
+            font-size: 0.92rem;
+            color: var(--muted);
+        }
+
+        select,
+        input,
+        button {
+            width: 100%;
+            padding: 14px 15px;
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: rgba(9, 2, 4, 0.92);
+            color: var(--text);
+            font: inherit;
+        }
+
+        button {
+            border: none;
+            color: #021222;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            cursor: pointer;
+            box-shadow: 0 16px 34px rgba(25, 161, 255, 0.24);
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 18px 36px rgba(25, 161, 255, 0.32);
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes gradientShift {
+            0% { background-position: 0% 40%, 100% 60%, 50% 50%; }
+            50% { background-position: 100% 50%, 0% 40%, 60% 40%; }
+            100% { background-position: 0% 40%, 100% 60%, 50% 50%; }
+        }
+
+        .error {
+            color: var(--danger);
+            margin: 0;
+        }
+
+        .success {
+            color: #7ddcff;
+            margin: 0;
+            animation: alertBlink 1.2s step-end infinite;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text);
+            cursor: pointer;
+        }
+
+        .form-card {
+            display: none;
+        }
+
+        .form-card.active {
+            display: block;
+            animation: fadeInCard 0.25s ease-out;
+        }
+
+        .panel {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        @media (max-width: 860px) {
+            .login-shell {
+                grid-template-columns: 1fr;
+            }
+
+            .intro,
+            .panel {
+                padding: 28px;
+            }
+        }
+
+        @keyframes blinkSoft {
+            0%, 100% { opacity: 1; text-shadow: 0 0 0 rgba(110, 203, 255, 0); }
+            50% { opacity: 0.82; text-shadow: 0 0 16px rgba(110, 203, 255, 0.35); }
+        }
+
+        @keyframes scanLine {
+            0% { transform: translateY(-12px); }
+            100% { transform: translateY(12px); }
+        }
+
+        @keyframes fadeInCard {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes cyberTitleBlink {
+            0%, 100% { opacity: 1; text-shadow: 0 0 0 rgba(138, 99, 255, 0); }
+            50% { opacity: 0.84; text-shadow: 0 0 18px rgba(138, 99, 255, 0.45); }
+        }
+        @keyframes alertBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.62; }
+        }
+        @keyframes bgFlash {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+        @keyframes auroraRotate {
+            from { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.08); }
+            to { transform: rotate(360deg) scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-shell">
+        <div class="intro">
+            <div class="eyebrow">AuthFlow Guardian++</div>
+            <h1>Secure session platform for modern teams.</h1>
+            <p class="muted">
+                Access your workspace with silent background protection.
+            </p>
+
+            <div class="feature-grid">
+                <div class="feature">
+                    <strong>Continuous Monitoring</strong>
+                    Session and file activity are protected in real time.
+                </div>
+                <div class="feature">
+                    <strong>Adaptive Policy</strong>
+                    Access controls adjust automatically based on risk.
+                </div>
+                <div class="feature">
+                    <strong>Streamlined Workspace</strong>
+                    Manage shared files from one focused interface.
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>Access Portal</h2>
+            <p class="muted">Sign in with your credentials or create a new user account with clearly defined allowed login hours.</p>
+            {% if error %}
+                <p class="error">{{ error }}</p>
+            {% endif %}
+            {% if message %}
+                <p class="success">{{ message }}</p>
+            {% endif %}
+            <div class="tabs">
+                <button class="tab" type="button" onclick="showAuth('login')">Sign In</button>
+                <button class="tab" type="button" onclick="showAuth('signup')">Sign Up</button>
+            </div>
+
+            <div id="login-card" class="form-card {% if selected_mode != 'signup' %}active{% endif %}">
+                <form method="POST">
+                    <input type="hidden" name="auth_action" value="login">
+                    <div>
+                        <label for="role">Role</label>
+                        <select id="role" name="role" required>
+                            <option value="user" {% if selected_role == 'user' %}selected{% endif %}>User</option>
+                            <option value="admin" {% if selected_role == 'admin' %}selected{% endif %}>Admin</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="username">User</label>
+                        <input id="username" name="username" type="text" placeholder="Enter username" value="{{ selected_username }}" required>
+                    </div>
+                    <div>
+                        <label for="password">Password</label>
+                        <input id="password" name="password" type="password" placeholder="Password" required>
+                    </div>
+                    <button type="submit">Enter Workspace</button>
+                </form>
+            </div>
+
+            <div id="signup-card" class="form-card {% if selected_mode == 'signup' %}active{% endif %}">
+                <form method="POST">
+                    <input type="hidden" name="auth_action" value="signup">
+                    <div>
+                        <label for="signup_username">Username</label>
+                        <input id="signup_username" name="signup_username" placeholder="New username" required>
+                    </div>
+                    <div>
+                        <label for="signup_password">Password</label>
+                        <input id="signup_password" name="signup_password" type="password" placeholder="Create password" required>
+                    </div>
+                    <div>
+                        <label for="login_start">Login Start Time</label>
+                        <input id="login_start" name="login_start" type="time" value="{{ default_login_start }}" required>
+                        <div class="muted">This is the earliest time the new user can log in.</div>
+                    </div>
+                    <div>
+                        <label for="login_end">Login End Time</label>
+                        <input id="login_end" name="login_end" type="time" value="{{ default_login_end }}" required>
+                        <div class="muted">This is the latest allowed login time. Overnight ranges are supported.</div>
+                    </div>
+                    <button type="submit">Create User Account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="cyber-hud-root" data-react-theme-widget></div>
+    <script src="{{ url_for('static', filename='js/theme-react.js') }}" defer></script>
+    <script>
+        function showAuth(mode) {
+            const loginCard = document.getElementById("login-card");
+            const signupCard = document.getElementById("signup-card");
+            loginCard.classList.toggle("active", mode === "login");
+            signupCard.classList.toggle("active", mode === "signup");
+        }
+
+    </script>
+</body>
+</html>

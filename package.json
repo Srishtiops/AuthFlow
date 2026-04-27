@@ -1,0 +1,29 @@
+{
+  "name": "ins",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build:css": "npx @tailwindcss/cli -i ./frontend/styles/tailwind.css -o ./static/css/theme.css --minify",
+    "build:js": "npx esbuild ./frontend/react/theme-widget.jsx --bundle --minify --outfile=./static/js/theme-react.js --format=iife --platform=browser",
+    "build": "npm run build:css && npm run build:js",
+    "watch:css": "npx @tailwindcss/cli -i ./frontend/styles/tailwind.css -o ./static/css/theme.css --watch=always",
+    "watch:js": "npx esbuild ./frontend/react/theme-widget.jsx --bundle --outfile=./static/js/theme-react.js --format=iife --platform=browser --watch=forever",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.2.4",
+    "autoprefixer": "^10.5.0",
+    "esbuild": "^0.28.0",
+    "postcss": "^8.5.12",
+    "tailwindcss": "^4.2.4"
+  }
+}

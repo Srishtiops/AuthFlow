@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Monitor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+    <style>
+        :root {
+            --bg: #040a1a;
+            --panel: rgba(8, 18, 45, 0.94);
+            --panel-soft: rgba(12, 27, 63, 0.88);
+            --line: rgba(82, 170, 255, 0.24);
+            --text: #e9f5ff;
+            --muted: #9fb9d8;
+            --accent: #1ea2ff;
+            --safe: #8c67ff;
+            --warn: #75b3ff;
+            --danger: #9cb3ff;
+            --shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Orbitron", "Trebuchet MS", "Segoe UI", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at 85% 10%, rgba(30, 162, 255, 0.18), transparent 18%),
+                radial-gradient(circle at 12% 18%, rgba(140, 103, 255, 0.14), transparent 18%),
+                linear-gradient(145deg, #020713, #061430 56%, #040a1a);
+            background-size: 120% 120%, 120% 120%, 120% 120%;
+            position: relative;
+            overflow-x: hidden;
+        }
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background:
+                radial-gradient(circle at 18% 28%, rgba(90, 188, 255, 0.1), transparent 22%),
+                radial-gradient(circle at 82% 68%, rgba(140, 103, 255, 0.1), transparent 24%);
+            mix-blend-mode: screen;
+            z-index: 0;
+        }
+        body::after {
+            content: "";
+            position: fixed;
+            inset: -18%;
+            pointer-events: none;
+            background:
+                conic-gradient(from 0deg at 50% 50%, rgba(30, 162, 255, 0.08), rgba(140, 103, 255, 0.09), rgba(30, 162, 255, 0.08));
+            filter: blur(54px);
+            animation: auroraRotate 24s linear infinite;
+            z-index: 0;
+        }
+
+        .wrap {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .topbar {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 16px;
+            align-items: center;
+            margin-bottom: 22px;
+        }
+
+        .topbar h1,
+        h2,
+        h3 {
+            margin-top: 0;
+        }
+
+        .topbar h1 {
+            margin-bottom: 8px;
+            font-size: clamp(2rem, 4vw, 3.1rem);
+        }
+
+        .muted {
+            color: var(--muted);
+        }
+
+        .action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 18px;
+            border-radius: 999px;
+            text-decoration: none;
+            color: #031322;
+            background: linear-gradient(135deg, var(--accent), var(--safe));
+            font-weight: 700;
+            box-shadow: 0 14px 34px rgba(30, 162, 255, 0.28);
+            border: none;
+            cursor: pointer;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 16px 36px rgba(30, 162, 255, 0.34);
+        }
+
+        .action-form {
+            margin: 0;
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background:
+                repeating-linear-gradient(
+                    to bottom,
+                    transparent 0px,
+                    transparent 2px,
+                    rgba(93, 191, 255, 0.03) 3px,
+                    transparent 4px
+                );
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(140, 103, 255, 0.45);
+        }
+
+        .metric {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-top: 8px;
+        }
+
+        .message {
+            margin-bottom: 18px;
+            padding: 14px 16px;
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: rgba(30, 162, 255, 0.12);
+        }
+
+        .message.success {
+            background: rgba(140, 103, 255, 0.2);
+        }
+
+        .message.error {
+            background: rgba(117, 179, 255, 0.18);
+        }
+
+        .alert-toast-container {
+            position: fixed;
+            right: 16px;
+            bottom: 16px;
+            z-index: 90;
+            width: min(460px, calc(100vw - 28px));
+            display: grid;
+            gap: 10px;
+        }
+
+        .flash-alert {
+            margin: 0;
+            border-color: rgba(255, 62, 92, 0.72);
+            background: rgba(60, 14, 29, 0.9);
+            box-shadow: 0 0 22px rgba(255, 62, 92, 0.32);
+            animation: alertSlideIn 0.35s ease-out, alertFlashRed 1s step-end infinite;
+        }
+
+        .flash-alert.critical {
+            border-color: rgba(255, 42, 76, 0.86);
+            box-shadow: 0 0 28px rgba(255, 42, 76, 0.45);
+        }
+
+        .alert-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .alert-text {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .alert-meta {
+            margin-top: 6px;
+            font-size: 0.78rem;
+            color: #ffb7c4;
+        }
+
+        .alert-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .alert-action-link {
+            display: inline-block;
+            padding: 7px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 102, 130, 0.5);
+            background: rgba(255, 83, 116, 0.22);
+            color: #ffdce3;
+            text-decoration: none;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .alert-action-btn {
+            border: 1px solid rgba(255, 102, 130, 0.5);
+            background: rgba(255, 83, 116, 0.22);
+            color: #ffdce3;
+            border-radius: 10px;
+            padding: 7px 10px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .alert-dismiss {
+            border: 1px solid rgba(255, 102, 130, 0.5);
+            background: rgba(255, 83, 116, 0.22);
+            color: #ffdce3;
+            border-radius: 10px;
+            width: 30px;
+            height: 30px;
+            font-size: 1rem;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .user-directory {
+            display: grid;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .user-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            gap: 12px;
+            padding: 14px;
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: rgba(30, 162, 255, 0.12);
+        }
+
+        .user-link {
+            display: block;
+            color: var(--text);
+            text-decoration: none;
+        }
+
+        .user-row.selected {
+            border-color: rgba(140, 103, 255, 0.6);
+            background: rgba(140, 103, 255, 0.2);
+            box-shadow: 0 0 18px rgba(140, 103, 255, 0.2);
+        }
+
+        .toggle-form,
+        .inline-form {
+            margin: 0;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 58px;
+            height: 32px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            inset: 0;
+            border-radius: 999px;
+            cursor: pointer;
+            background: rgba(117, 179, 255, 0.2);
+            border: 1px solid rgba(117, 179, 255, 0.4);
+            transition: 0.25s ease;
+        }
+
+        .slider::before {
+            content: "";
+            position: absolute;
+            left: 4px;
+            top: 4px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #dce9ff;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+            transition: 0.25s ease;
+        }
+
+        .switch input:checked + .slider {
+            background: rgba(140, 103, 255, 0.26);
+            border-color: rgba(140, 103, 255, 0.5);
+        }
+
+        .switch input:checked + .slider::before {
+            transform: translateX(26px);
+            background: #ece2ff;
+        }
+
+        .switch-label {
+            min-width: 74px;
+            text-align: right;
+            color: var(--muted);
+            font-size: 0.88rem;
+        }
+
+        .switch-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-control-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .user-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .time-input {
+            width: 110px;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            background: rgba(30, 162, 255, 0.12);
+            color: var(--text);
+            padding: 8px 10px;
+        }
+
+        .mini-action {
+            border: none;
+            border-radius: 10px;
+            padding: 8px 12px;
+            color: #1f0308;
+            background: linear-gradient(135deg, var(--accent), var(--safe));
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .mini-action.warn {
+            color: #04172b;
+            background: linear-gradient(135deg, var(--warn), #97c8ff);
+        }
+
+        .mini-action.safe {
+            color: #1e1540;
+            background: linear-gradient(135deg, #8c67ff, #b18fff);
+        }
+
+        .profile-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(3px);
+            z-index: 30;
+            display: grid;
+            place-items: center;
+            padding: 18px;
+        }
+
+        .profile-modal {
+            width: min(980px, 100%);
+            max-height: calc(100vh - 36px);
+            overflow: auto;
+            border-radius: 20px;
+            border: 1px solid var(--line);
+            background: rgba(21, 7, 12, 0.97);
+            box-shadow: var(--shadow);
+            padding: 20px;
+        }
+
+        .profile-head {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: start;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .close-link {
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            text-decoration: none;
+            color: var(--text);
+            background: rgba(140, 103, 255, 0.2);
+        }
+
+        .profile-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .metric-box {
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 12px;
+            background: rgba(30, 162, 255, 0.11);
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 6px;
+        }
+
+        .profile-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .profile-panel {
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 14px;
+            background: rgba(30, 162, 255, 0.1);
+        }
+
+        .profile-list {
+            display: grid;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .log-scroll {
+            max-height: 360px;
+            overflow: auto;
+            padding-right: 4px;
+        }
+
+        .profile-list-item {
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            background: rgba(140, 103, 255, 0.1);
+        }
+
+        .log-list {
+            display: grid;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .log-entry {
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            background: rgba(30, 162, 255, 0.11);
+        }
+
+        @keyframes alertSlideIn {
+            from {
+                opacity: 0;
+                transform: translate(22px, 12px);
+            }
+            to {
+                opacity: 1;
+                transform: translate(0, 0);
+            }
+        }
+        @keyframes alertFlashRed {
+            0%, 100% {
+                filter: brightness(1);
+            }
+            50% {
+                filter: brightness(1.18);
+            }
+        }
+        @keyframes auroraRotate {
+            from { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.06); }
+            to { transform: rotate(360deg) scale(1); }
+        }
+
+        @media (max-width: 820px) {
+            .wrap {
+                padding: 16px;
+            }
+
+            .topbar {
+                grid-template-columns: 1fr;
+            }
+
+            .profile-columns {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="topbar">
+            <div>
+                <h1>Admin Monitoring Dashboard</h1>
+                <p class="muted">Live security overview for active sessions.</p>
+            </div>
+            <form class="action-form" action="{{ url_for('logout') }}" method="post">
+                <button class="action" type="submit">Logout</button>
+            </form>
+        </div>
+        
+        <div id="flash-zone">
+            {% if message %}
+                <div class="message {{ message_type }}">{{ message }}</div>
+            {% endif %}
+        </div>
+
+        {% if admin_alerts %}
+            <div class="alert-toast-container">
+                {% for alert in admin_alerts %}
+                    <div class="message flash-alert {% if alert.severity == 'critical' %}critical{% endif %}">
+                        <div class="alert-row">
+                            <div class="alert-text">
+                                <div>{{ alert.message }}</div>
+                                <div class="alert-meta">
+                                    Severity: {{ alert.severity|upper }}
+                                    {% if alert.ip_address %} | IP: {{ alert.ip_address }}{% endif %}
+                                    {% if alert.username %} | User: {{ alert.username }}{% endif %}
+                                </div>
+                                {% if alert.action_user %}
+                                    <div class="alert-actions">
+                                        <a class="alert-action-link" href="{{ url_for('admin_dashboard', user=alert.action_user) }}">Open User Profile</a>
+                                        <form class="inline-form ajax-form" action="{{ url_for('update_monitoring', username=alert.action_user) }}" method="post">
+                                            <input type="hidden" name="return_user" value="{{ alert.action_user }}">
+                                            <button class="alert-action-btn" type="submit">Pause Monitoring</button>
+                                        </form>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <form class="inline-form ajax-form alert-dismiss-form" action="{{ url_for('dismiss_alert', alert_index=loop.index0) }}" method="post">
+                                <button class="alert-dismiss" type="submit" aria-label="Dismiss alert" title="Dismiss alert">&times;</button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="card">
+            <h2>User Directory</h2>
+            <p class="muted">Click a user to open the full profile.</p>
+            <div class="user-directory">
+                <div class="user-row {% if not selected_user %}selected{% endif %}">
+                    <a class="user-link" href="{{ url_for('admin_dashboard') }}">
+                        <strong>All Users</strong><br>
+                        <span class="muted">Show every active monitored session and log entry.</span>
+                    </a>
+                </div>
+                {% for user in users %}
+                    <div class="user-row {% if user.selected %}selected{% endif %}">
+                        <a class="user-link" href="{{ url_for('admin_dashboard', user=user.username) }}">
+                            <strong>{{ user.username }}</strong><br>
+                            <span class="muted">
+                                {% if user.monitoring_enabled %}Monitoring enabled{% else %}Monitoring disabled{% endif %}
+                                | {% if user.is_action_locked %}Action lock active{% else %}Actions enabled{% endif %}
+                                {% if user.manual_access_open %} | Access window active: {{ user.manual_access_until }}{% endif %}
+                            </span>
+                        </a>
+                        <form class="toggle-form ajax-form" action="{{ url_for('update_monitoring', username=user.username) }}" method="post">
+                            <input type="hidden" name="return_user" value="{{ selected_user }}">
+                            <div class="switch-wrap">
+                                <label class="switch" title="Toggle monitoring for {{ user.username }}">
+                                    <input
+                                        type="checkbox"
+                                        name="enabled"
+                                        value="1"
+                                        {% if user.monitoring_enabled %}checked{% endif %}
+                                        class="monitoring-toggle"
+                                    >
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="switch-label">{% if user.monitoring_enabled %}Live{% else %}Paused{% endif %}</span>
+                            </div>
+                        </form>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% if user_profile %}
+            <div class="profile-overlay" onclick="closeProfileOnBackdrop(event)">
+                <section class="profile-modal">
+                    <div class="profile-head">
+                        <div>
+                            <h2>{{ user_profile.username }} Profile</h2>
+                            <div class="muted">Allowed login window: {{ user_profile.login_window }}</div>
+                            <div class="muted">
+                                {% if user_profile.within_hours %}Within allowed hours{% else %}Outside allowed hours{% endif %}
+                                {% if user_profile.manual_access_open %} | Manual access window active: {{ user_profile.manual_access_until }}{% endif %}
+                            </div>
+                        </div>
+                        <a class="close-link" href="{{ url_for('admin_dashboard') }}">Close</a>
+                    </div>
+
+                    <div class="profile-metrics">
+                        <div class="metric-box">
+                            <div class="muted">Trust Score</div>
+                            <div class="metric-value">
+                                {% if user_profile.trust_score is not none %}{{ user_profile.trust_score }}{% else %}--{% endif %}
+                            </div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="muted">Access State</div>
+                            <div class="metric-value" style="font-size: 1rem;">{{ user_profile.access_state }}</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="muted">Latest Upload</div>
+                            <div class="metric-value" style="font-size: 1rem;">
+                                {% if user_profile.latest_upload %}
+                                    {{ user_profile.latest_upload.filename }}
+                                {% else %}
+                                    No upload yet
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="muted">Monitoring</div>
+                            <div class="metric-value" style="font-size: 1rem;">
+                                {% if user_profile.monitoring_enabled %}Live{% else %}Paused{% endif %}
+                            </div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="muted">Action Status</div>
+                            <div class="metric-value" style="font-size: 1rem;">
+                                {% if user_profile.is_action_locked %}Suspended{% else %}Active{% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="profile-columns">
+                        <div class="profile-panel">
+                            <h3>Access Controls</h3>
+                            <p class="muted">Set exact access time range for this user.</p>
+                            <p class="muted">Use time like 8:00 AM to 5:00 PM (24-hour values also work).</p>
+                            <div class="user-controls">
+                                <form class="inline-form ajax-form" action="{{ url_for('open_access', username=user_profile.username) }}" method="post">
+                                    <input type="hidden" name="return_user" value="{{ user_profile.username }}">
+                                    <input
+                                        type="text"
+                                        name="access_start"
+                                        value="{{ user_profile.access_start_default }}"
+                                        class="time-input"
+                                        placeholder="08:00 AM"
+                                        required
+                                    >
+                                    <input
+                                        type="text"
+                                        name="access_end"
+                                        value="{{ user_profile.access_end_default }}"
+                                        class="time-input"
+                                        placeholder="05:00 PM"
+                                        required
+                                    >
+                                    <button class="mini-action" type="submit">Set Access Window</button>
+                                </form>
+                                {% if user_profile.manual_access_open %}
+                                    <form class="inline-form ajax-form" action="{{ url_for('close_access', username=user_profile.username) }}" method="post">
+                                        <input type="hidden" name="return_user" value="{{ user_profile.username }}">
+                                        <button class="mini-action" type="submit">Close Manual Access</button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                            {% if user_profile.manual_access_open %}
+                                <p class="muted">Manual access is currently open in this range: {{ user_profile.manual_access_until }}.</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="profile-panel">
+                            <h3>File Activity</h3>
+                            {% if user_profile.file_activity %}
+                                <div class="profile-list">
+                                    {% for event in user_profile.file_activity %}
+                                        <div class="profile-list-item">
+                                            <strong>{{ event.action_label }}: {{ event.filename }}</strong><br>
+                                            <span class="muted">{{ event.time }} | {{ event.status }}</span>
+                                            {% if event.reason %}
+                                                <br><span class="muted">{{ event.reason }}</span>
+                                            {% endif %}
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="muted">No file activity captured yet.</p>
+                            {% endif %}
+                        </div>
+
+                    </div>
+
+                    <div class="profile-panel" style="margin-top: 12px;">
+                        <h3>User Logs (All)</h3>
+                        {% if user_profile.logs %}
+                            <div class="profile-list log-scroll">
+                                {% for entry in user_profile.logs %}
+                                    <div class="profile-list-item">{{ entry }}</div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="muted">No logs available for this user yet.</p>
+                        {% endif %}
+                    </div>
+                </section>
+            </div>
+        {% endif %}
+
+    </div>
+    <div class="cyber-hud-root" data-react-theme-widget></div>
+    <script src="{{ url_for('static', filename='js/theme-react.js') }}" defer></script>
+    <script>
+        let isSubmitting = false;
+
+        function showFlash(message, type) {
+            const zone = document.getElementById("flash-zone");
+            if (!zone) {
+                return;
+            }
+            zone.innerHTML = `<div class="message ${type || "info"}">${message}</div>`;
+        }
+
+        function hasActiveFormInput() {
+            const active = document.activeElement;
+            if (!active) {
+                return false;
+            }
+            return active.matches("input, textarea, select");
+        }
+
+        async function submitAjaxForm(form) {
+            isSubmitting = true;
+            try {
+                const response = await fetch(form.action, {
+                    method: form.method || "POST",
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                    body: new FormData(form),
+                });
+                const payload = await response.json();
+                if (!form.classList.contains("alert-dismiss-form")) {
+                    showFlash(payload.message, payload.message_type);
+                }
+                if (form.classList.contains("alert-dismiss-form")) {
+                    const alertNode = form.closest(".message");
+                    if (alertNode) {
+                        alertNode.remove();
+                    }
+                }
+            } finally {
+                isSubmitting = false;
+            }
+        }
+
+        function bindAjaxHandlers() {
+            document.querySelectorAll(".ajax-form").forEach((form) => {
+                if (form.dataset.bound === "1") {
+                    return;
+                }
+                form.dataset.bound = "1";
+                form.addEventListener("submit", async (event) => {
+                    event.preventDefault();
+                    try {
+                        await submitAjaxForm(form);
+                    } catch (error) {
+                        showFlash("Could not complete this action.", "error");
+                    }
+                });
+            });
+
+            document.querySelectorAll(".monitoring-toggle").forEach((toggle) => {
+                if (toggle.dataset.bound === "1") {
+                    return;
+                }
+                toggle.dataset.bound = "1";
+                toggle.addEventListener("change", async (event) => {
+                    const form = event.target.closest("form");
+                    if (!form) {
+                        return;
+                    }
+                    try {
+                        await submitAjaxForm(form);
+                    } catch (error) {
+                        showFlash("Could not update monitoring.", "error");
+                    }
+                });
+            });
+        }
+
+        async function refreshAdminDashboard() {
+            if (document.hidden || isSubmitting || hasActiveFormInput()) {
+                return;
+            }
+            try {
+                const response = await fetch(window.location.href, {
+                    method: "GET",
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                    cache: "no-store",
+                });
+                const html = await response.text();
+                const parser = new DOMParser();
+                const nextDoc = parser.parseFromString(html, "text/html");
+                const nextWrap = nextDoc.querySelector(".wrap");
+                const currentWrap = document.querySelector(".wrap");
+                if (!nextWrap || !currentWrap) {
+                    return;
+                }
+                currentWrap.replaceWith(nextWrap);
+                bindAjaxHandlers();
+            } catch (error) {
+                // Silent fail to avoid interrupting admin flow.
+            }
+        }
+
+        function closeProfileOnBackdrop(event) {
+            if (event.target.classList.contains("profile-overlay")) {
+                window.location.href = "{{ url_for('admin_dashboard') }}";
+            }
+        }
+
+        document.addEventListener("keydown", function(event) {
+            if (event.key === "Escape") {
+                const overlay = document.querySelector(".profile-overlay");
+                if (overlay) {
+                    window.location.href = "{{ url_for('admin_dashboard') }}";
+                }
+            }
+        });
+
+        bindAjaxHandlers();
+        const autoRefreshTimer = setInterval(refreshAdminDashboard, 5000);
+        window.addEventListener("beforeunload", function() {
+            clearInterval(autoRefreshTimer);
+        });
+    </script>
+</body>
+</html>

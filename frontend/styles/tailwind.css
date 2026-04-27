@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cyber-blue: #21a8ff;
+  --color-cyber-purple: #8a63ff;
+  --color-cyber-ink: #020a1b;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-cyber-ink);
+  }
+}
+
+@layer components {
+  .cyber-hud-root {
+    position: fixed;
+    right: 14px;
+    bottom: 14px;
+    z-index: 40;
+    pointer-events: none;
+  }
+
+  .cyber-hud-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid color-mix(in srgb, var(--color-cyber-blue) 40%, transparent);
+    background: color-mix(in srgb, #081b3f 88%, transparent);
+    color: #dff4ff;
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    animation: hudPulse 2.6s ease-in-out infinite;
+    box-shadow: 0 0 0 rgba(33, 168, 255, 0);
+  }
+
+  .cyber-hud-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-cyber-purple);
+    animation: hudBlink 1.1s step-end infinite;
+  }
+}
+
+@keyframes hudPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(33, 168, 255, 0);
+    filter: brightness(1);
+  }
+  50% {
+    box-shadow: 0 0 18px rgba(33, 168, 255, 0.34);
+    filter: brightness(1.08);
+  }
+}
+
+@keyframes hudBlink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
